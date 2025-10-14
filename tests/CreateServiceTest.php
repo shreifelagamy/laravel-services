@@ -222,6 +222,8 @@ class CreateServiceTest extends TestCase
     public function it_can_generate_dto_files()
     {
         $serviceName = 'TestServiceDTOs';
+        $dtoName = 'LaborerInfo' . config('data.commands.make.namespace', 'Data');
+        
         Config::set('laravel-service-modules.directory', 'Test');
         $directory = str(config('laravel-service-modules.directory', 'Services'))->ucfirst();
 
@@ -234,11 +236,12 @@ class CreateServiceTest extends TestCase
             ->expectsQuestion('Are you sure you want to generate methods: getUserInfo', true)
             ->assertExitCode(0);
 
-        $dtoPath = app_path("{$directory}/{$serviceName}/DTOs/LaborerInfo.php");
+        $dtoPath = config('data.commands.make.path', 'Data');
+        $dtoPath = app_path("{$directory}/{$serviceName}/{$dtoPath}/{$dtoName}.php");
         $this->assertFileExists($dtoPath);
 
         $dtoContent = File::get($dtoPath);
-        $this->assertStringContainsString("namespace App\\{$directory}\\{$serviceName}\\DTOs;", $dtoContent);
-        $this->assertStringContainsString("class LaborerInfo", $dtoContent);
+        $this->assertStringContainsString("namespace App\\{$directory}\\{$serviceName}\\Data;", $dtoContent);
+        $this->assertStringContainsString("class {$dtoName}", $dtoContent);
     }
 }
