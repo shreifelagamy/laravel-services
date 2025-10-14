@@ -201,7 +201,7 @@ class GenerateServiceCommand extends Command
     private function guessFilePath(SplFileInfo $file): string
     {
         $info = explode('.', $file->getFilename());
-        $path = str($this->service_name)->prepend("$info[0]/");
+        $path = str($this->service_name)->prepend("$info[0]/")->ucfirst();
 
         if ($info[1] !== 'stub') {
             $append = ucfirst($info[1]);
