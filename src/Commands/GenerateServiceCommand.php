@@ -5,6 +5,7 @@ namespace ShreifElagamy\LaravelServiceModules\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Laravel\Prompts\Progress;
+use Spatie\LaravelData\Commands\DataMakeCommand;
 use Symfony\Component\Finder\SplFileInfo;
 
 use function Laravel\Prompts\confirm;
@@ -274,23 +275,17 @@ class GenerateServiceCommand extends Command
             $this->filesystem->makeDirectory($this->getServicesPath() . '/' . $this->service_name . '/Exceptions', 0755, true);
         }
 
-        if (! empty($this->dtos)) {
-            $this->filesystem->makeDirectory($this->getServicesPath() . '/' . $this->service_name . '/DTOs', 0755, true);
-        }
-
         $this->progress->advance();
     }
 
     private function generateDTOs(): void
     {
         foreach ($this->dtos as $dto) {
-            $content = $this->filesystem->get($this->getStubPath() . '/dto.stub');
-            $content = str_replace('$DTO_NAMESPACE$', app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\DTOs", $content);
-            $content = str_replace('$DTO_NAME$', $dto, $content);
-
-            $file_path = $this->getServicesPath() . "/{$this->service_name}/DTOs/{$dto}.php";
-            $this->filesystem->put($file_path, $content);
-
+            $this->call(DataMakeCommand::class, [
+                'name' => $dto,
+                '--namespace' => "{$this->directory}\\{$this->service_name}\\" . config('data.commands.make.namespace', 'Data'),
+            ]);
+            
             $this->progress->advance();
         }
     }
