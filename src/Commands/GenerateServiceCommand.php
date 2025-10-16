@@ -73,7 +73,7 @@ class GenerateServiceCommand extends Command
             $count += count($this->dtos);
         }
         $this->progress = progress(label: "Generating Service Module `{$this->service_name}`", steps: $count);
-        $this->createSerivceDirectoryStructure();
+        $this->createServiceDirectoryStructure();
         $this->generateServiceFiles();
 
         if (! empty($this->dtos)) {
@@ -127,17 +127,23 @@ class GenerateServiceCommand extends Command
         }
     }
 
+    public function getServiceNamespace(): string
+    {
+        return str_replace('/', '\\', $this->directory);
+    }
+    
     /**
      **
      * Map the stub variables present in stub to its value
      */
     public function getStubVariables(): array
     {
+        $namespace = $this->getServiceNamespace();
         return [
-            '$REPO_NAMESPACE$' => app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\Repositories",
-            '$PROVIDER_NAMESPACE$' => app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\Providers",
-            '$FACADE_NAMESPACE$' => app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\Facades",
-            '$EXCEPTION_NAMESPACE$' => app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\Exceptions",
+            '$REPO_NAMESPACE$' => app()->getNamespace() . "{$namespace}\\{$this->service_name}\\Repositories",
+            '$PROVIDER_NAMESPACE$' => app()->getNamespace() . "{$namespace}\\{$this->service_name}\\Providers",
+            '$FACADE_NAMESPACE$' => app()->getNamespace() . "{$namespace}\\{$this->service_name}\\Facades",
+            '$EXCEPTION_NAMESPACE$' => app()->getNamespace() . "{$namespace}\\{$this->service_name}\\Exceptions",
             '$SERVICE_NAME$' => $this->service_name,
         ];
     }
@@ -237,10 +243,10 @@ class GenerateServiceCommand extends Command
 
     private function prepareTheServiceName(): bool
     {
-        $this->service_name = $this->argument('name');
+        $serviceName = $this->argument('name');
 
-        if (empty($this->service_name)) {
-            $this->service_name = text(
+        if (empty($serviceName)) {
+            $serviceName = text(
                 label: 'Enter the service name',
                 placeholder: 'ExampleService',
                 required: true,
@@ -251,19 +257,24 @@ class GenerateServiceCommand extends Command
                 }
             );
         } else {
-            if ($this->filesystem->exists($this->getServicesPath() . '/' . $this->service_name)) {
-                $this->error("Service '{$this->service_name}' already exists.");
+            if ($this->filesystem->exists($this->getServicesPath() . '/' . $serviceName)) {
+                $this->error("Service '{$serviceName}' already exists.");
 
                 return false;
             }
         }
 
-        $this->service_name = str($this->service_name)->trim()->studly();
+        if(str_contains($serviceName, '/')) {
+            $nestedService = explode('/', $serviceName);
+            $serviceName = array_pop($nestedService);
+            $this->directory .= '/' . implode('/', $nestedService);
+        }
+        $this->service_name = str($serviceName)->trim()->studly();
 
         return true;
     }
 
-    private function createSerivceDirectoryStructure(): void
+    private function createServiceDirectoryStructure(): void
     {
         $this->progress->bgGreen('Creating Service Directory Structure');
         $this->filesystem->makeDirectory($this->getServicesPath() . '/' . $this->service_name . '/Repositories', 0755, true);
@@ -285,7 +296,8 @@ class GenerateServiceCommand extends Command
     {
         foreach ($this->dtos as $dto) {
             $content = $this->filesystem->get($this->getStubPath() . '/dto.stub');
-            $content = str_replace('$DTO_NAMESPACE$', app()->getNamespace() . "{$this->directory}\\{$this->service_name}\\DTOs", $content);
+            $namespace = $this->getServiceNamespace();
+            $content = str_replace('$DTO_NAMESPACE$', app()->getNamespace() . "{$namespace}\\{$this->service_name}\\DTOs", $content);
             $content = str_replace('$DTO_NAME$', $dto, $content);
 
             $file_path = $this->getServicesPath() . "/{$this->service_name}/DTOs/{$dto}.php";
